@@ -240,10 +240,12 @@ func (c *HTTPTriggerController) syncHTTPTrigger(key string) error {
 
 	// delete ingress resource if not required
 	if !httpTriggerObj.Spec.EnableIngress {
-		c.logger.Infof("Deleting ingress resource for http trigger Obj: %s ", key)
-		err = utils.DeleteIngress(c.clientset, httpTriggerObj.Spec.RouteName, httpTriggerObj.Namespace)
-		if err != nil {
-			c.logger.Errorf("Failed to remove ingress rule %s corresponding to http trigger Obj: %s due to: %v: ", httpTriggerObj.Spec.RouteName, key, err)
+		if httpTriggerObj.Spec.RouteName != "" {
+			c.logger.Infof("Deleting ingress resource for http trigger Obj: %s ", key)
+			err = utils.DeleteIngress(c.clientset, httpTriggerObj.Spec.RouteName, httpTriggerObj.Namespace)
+			if err != nil {
+				c.logger.Errorf("Failed to remove ingress rule %s corresponding to http trigger Obj: %s due to: %v: ", httpTriggerObj.Spec.RouteName, key, err)
+			}
 		}
 	}
 	c.logger.Infof("Processed update to HTTPTrigger: %s", key)
