@@ -18,7 +18,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var routeDeleteCmd = &cobra.Command{
@@ -49,18 +48,17 @@ var routeDeleteCmd = &cobra.Command{
 			logrus.Fatal(err)
 		}
 
-		httpTrigger, err := kubelessClient.KubelessV1beta1().HTTPTriggers(ns).Get(httpTriggerName, metav1.GetOptions{})
+		httpTrigger, err := utils.GetHTTPTriggerCustomResource(kubelessClient, httpTriggerName, ns)
 		if err != nil {
 			if k8sErrors.IsNotFound(err) {
 				logrus.Fatalf("http trigger %s doesn't exist in namespace %s", httpTriggerName, ns)
 			} else {
-				logrus.Fatalf("error validate input %v", err)
+				logrus.Fatalf("error validate input %v, object %v", err, httpTrigger)
 			}
 		}
 
 		httpTrigger.Spec.RouteName = routeName
 		httpTrigger.Spec.EnableIngress = false
-
 		err = utils.UpdateHTTPTriggerCustomResource(kubelessClient, httpTrigger)
 		if err != nil {
 			logrus.Fatalf("Can't create route: %v", err)
@@ -70,4 +68,5 @@ var routeDeleteCmd = &cobra.Command{
 
 func init() {
 	routeDeleteCmd.Flags().StringP("http-trigger", "", "", "Name of the http-trigger")
+	routeDeleteCmd.MarkFlagRequired("http-trigger")
 }

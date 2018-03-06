@@ -297,7 +297,7 @@ test_kubeless_ingress() {
     act_ingress=$(kubectl get ingress ing-${func} -ojsonpath='{range .spec.rules[*]}{@.host}:{@.http.paths[*].backend.serviceName}')
     exp_ingress="${func}.${domain}:${func}"
     [[ ${act_ingress} == ${exp_ingress} ]]
-    kubeless route delete ing-${func}
+    kubeless route delete ing-${func} --http-trigger ${func}
 }
 test_kubeless_autoscale() {
     local func=${1:?} exp_autoscale act_autoscale

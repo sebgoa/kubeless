@@ -313,8 +313,8 @@ func httpTriggerObjChanged(oldObj, newObj *kubelessApi.HTTPTrigger) bool {
 		return true
 	}
 	// If the new and old function object's resource version is same
-	if oldObj.ResourceVersion == newObj.ResourceVersion {
-		return false
+	if oldObj.ResourceVersion != newObj.ResourceVersion {
+		return true
 	}
 	newSpec := &newObj.Spec
 	oldSpec := &oldObj.Spec
