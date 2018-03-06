@@ -81,7 +81,6 @@ func NewHTTPTriggerController(cfg HTTPTriggerConfig) *HTTPTriggerController {
 				if httpTriggerObjChanged(oldObj, newObj) {
 					queue.Add(key)
 				}
-				queue.Add(key)
 			}
 		},
 		DeleteFunc: func(obj interface{}) {
@@ -232,15 +231,19 @@ func (c *HTTPTriggerController) syncHTTPTrigger(key string) error {
 		}
 		return nil
 	}
+
 	// create ingress resource if required
 	if httpTriggerObj.Spec.EnableIngress {
+		c.logger.Infof("Adding ingress resource for http trigger Obj: %s ", key)
 		err = utils.CreateIngress(c.clientset, httpTriggerObj)
 		if err != nil {
 			c.logger.Errorf("Failed to create ingress rule %s corresponding to http trigger Obj: %s due to: %v: ", httpTriggerObj.Spec.RouteName, key, err)
 		}
 	}
+
 	// delete ingress resource if not required
 	if !httpTriggerObj.Spec.EnableIngress {
+		c.logger.Infof("Deleting ingress resource for http trigger Obj: %s ", key)
 		err = utils.DeleteIngress(c.clientset, httpTriggerObj.Spec.RouteName, httpTriggerObj.Namespace)
 		if err != nil {
 			c.logger.Errorf("Failed to remove ingress rule %s corresponding to http trigger Obj: %s due to: %v: ", httpTriggerObj.Spec.RouteName, key, err)

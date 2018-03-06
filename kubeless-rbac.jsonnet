@@ -41,6 +41,11 @@ local controller_roles = [
     resources: ["alertmanagers", "prometheuses", "servicemonitors"],
     verbs: ["*"],
   },
+  {
+    apiGroups: ["extensions"],
+    resources: ["ingress"],
+    verbs: ["get", "list", "update"],
+  },
 ];
 
 local controllerAccount = kubeless.controllerAccount;
