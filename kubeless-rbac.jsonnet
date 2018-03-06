@@ -43,8 +43,8 @@ local controller_roles = [
   },
   {
     apiGroups: ["extensions"],
-    resources: ["ingress"],
-    verbs: ["get", "list", "update"],
+    resources: ["ingresses"],
+    verbs: ["create", "get", "list", "update", "delete"],
   },
 ];
 
