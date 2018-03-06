@@ -80,8 +80,9 @@ var routeCreateCmd = &cobra.Command{
 		httpTrigger.Spec.HostName = hostName
 		httpTrigger.Spec.TLSAcme = enableTLSAcme
 		httpTrigger.Spec.RouteName = ingressName
+		httpTrigger.Spec.EnableIngress = true
 
-		err = utils.PatchHTTPTriggerCustomResource(kubelessClient, httpTrigger)
+		err = utils.UpdateHTTPTriggerCustomResource(kubelessClient, httpTrigger)
 		if err != nil {
 			logrus.Fatalf("Can't create route: %v", err)
 		}

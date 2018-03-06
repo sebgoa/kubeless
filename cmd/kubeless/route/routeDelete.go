@@ -29,7 +29,7 @@ var routeDeleteCmd = &cobra.Command{
 		if len(args) != 1 {
 			logrus.Fatal("Need exactly one argument - route name")
 		}
-		ingName := args[0]
+		routeName := args[0]
 
 		httpTriggerName, err := cmd.Flags().GetString("http-trigger")
 		if err != nil {
@@ -58,9 +58,8 @@ var routeDeleteCmd = &cobra.Command{
 			}
 		}
 
-		httpTrigger.Spec.HostName = ""
-		httpTrigger.Spec.TLSAcme = false
-		httpTrigger.Spec.RouteName = ingName
+		httpTrigger.Spec.RouteName = routeName
+		httpTrigger.Spec.EnableIngress = false
 
 		err = utils.PatchHTTPTriggerCustomResource(kubelessClient, httpTrigger)
 		if err != nil {

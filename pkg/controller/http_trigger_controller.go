@@ -233,14 +233,14 @@ func (c *HTTPTriggerController) syncHTTPTrigger(key string) error {
 		return nil
 	}
 	// create ingress resource if required
-	if httpTriggerObj.Spec.HostName != "" {
+	if httpTriggerObj.Spec.EnableIngress {
 		err = utils.CreateIngress(c.clientset, httpTriggerObj)
 		if err != nil {
-			c.logger.Errorf("Failed to remove ingress rule %s corresponding to http trigger Obj: %s due to: %v: ", httpTriggerObj.Spec.RouteName, key, err)
+			c.logger.Errorf("Failed to create ingress rule %s corresponding to http trigger Obj: %s due to: %v: ", httpTriggerObj.Spec.RouteName, key, err)
 		}
 	}
 	// delete ingress resource if not required
-	if httpTriggerObj.Spec.HostName == "" {
+	if !httpTriggerObj.Spec.EnableIngress {
 		err = utils.DeleteIngress(c.clientset, httpTriggerObj.Spec.RouteName, httpTriggerObj.Namespace)
 		if err != nil {
 			c.logger.Errorf("Failed to remove ingress rule %s corresponding to http trigger Obj: %s due to: %v: ", httpTriggerObj.Spec.RouteName, key, err)
