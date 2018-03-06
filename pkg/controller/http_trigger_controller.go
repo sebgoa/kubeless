@@ -206,12 +206,9 @@ func (c *HTTPTriggerController) syncHTTPTrigger(key string) error {
 			return nil
 		}
 
-		// remove ingress resource if any
-		if httpTriggerObj.Spec.HostName != "" || httpTriggerObj.Spec.TLSAcme {
-			err = utils.DeleteIngress(c.clientset, httpTriggerObj.Spec.RouteName, httpTriggerObj.Namespace)
-			if err != nil {
-				c.logger.Errorf("Failed to remove ingress rule %s corresponding to http trigger Obj: %s due to: %v: ", httpTriggerObj.Spec.RouteName, key, err)
-			}
+		// remove ingress resource if any. Ignore any error, as ingress resource will be GC'ed
+		if httpTriggerObj.Spec.EnableIngress {
+			_ = utils.DeleteIngress(c.clientset, httpTriggerObj.Spec.RouteName, httpTriggerObj.Namespace)
 		}
 
 		err = c.httpTriggerObjRemoveFinalizer(httpTriggerObj)

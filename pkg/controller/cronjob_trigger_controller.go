@@ -76,6 +76,11 @@ func NewCronJobTriggerController(cfg CronJobTriggerConfig) *CronJobTriggerContro
 		UpdateFunc: func(old, new interface{}) {
 			key, err := cache.MetaNamespaceKeyFunc(new)
 			if err == nil {
+				newObj := new.(*kubelessApi.CronJobTrigger)
+				oldObj := old.(*kubelessApi.CronJobTrigger)
+				if cronJobTriggerObjChanged(oldObj, newObj) {
+					queue.Add(key)
+				}
 				queue.Add(key)
 			}
 		},
@@ -337,4 +342,23 @@ func (c *CronJobTriggerController) cronJobTriggerObjRemoveFinalizer(triggercObj 
 		return err
 	}
 	return nil
+}
+
+func cronJobTriggerObjChanged(oldObj, newObj *kubelessApi.CronJobTrigger) bool {
+	// If the CronJob trigger object's deletion timestamp is set, then process
+	if oldObj.DeletionTimestamp != newObj.DeletionTimestamp {
+		return true
+	}
+	// If the new and old CronJob trigger object's resource version is same
+	if oldObj.ResourceVersion != newObj.ResourceVersion {
+		return true
+	}
+	newSpec := &newObj.Spec
+	oldSpec := &oldObj.Spec
+
+	if newSpec.Schedule != oldSpec.Schedule {
+		return true
+	}
+
+	return false
 }
