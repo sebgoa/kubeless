@@ -443,7 +443,7 @@ func getProvisionContainer(function, checksum, fileName, handler, contentType, r
 }
 
 // CreateIngress creates ingress rule for a specific function
-func CreateIngress(client kubernetes.Interface, httpTriggerObj *kubelessApi.HTTPTrigger, ingressName, hostname, ns string, enableTLSAcme bool) error {
+func CreateIngress(client kubernetes.Interface, httpTriggerObj *kubelessApi.HTTPTrigger) error {
 	or, err := GetHTTPTriggerOwnerReference(httpTriggerObj)
 	if err != nil {
 		return err
@@ -460,15 +460,15 @@ func CreateIngress(client kubernetes.Interface, httpTriggerObj *kubelessApi.HTTP
 
 	ingress := &v1beta1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            ingressName,
-			Namespace:       ns,
+			Name:            httpTriggerObj.Spec.RouteName,
+			Namespace:       httpTriggerObj.Namespace,
 			OwnerReferences: or,
 			Labels:          httpTriggerObj.ObjectMeta.Labels,
 		},
 		Spec: v1beta1.IngressSpec{
 			Rules: []v1beta1.IngressRule{
 				{
-					Host: hostname,
+					Host: httpTriggerObj.Spec.HostName,
 					IngressRuleValue: v1beta1.IngressRuleValue{
 						HTTP: &v1beta1.HTTPIngressRuleValue{
 							Paths: []v1beta1.HTTPIngressPath{
@@ -487,7 +487,7 @@ func CreateIngress(client kubernetes.Interface, httpTriggerObj *kubelessApi.HTTP
 		},
 	}
 
-	if enableTLSAcme {
+	if httpTriggerObj.Spec.TLSAcme {
 		// add annotations and TLS configuration for kube-lego
 		ingressAnnotations := map[string]string{
 			"kubernetes.io/tls-acme":             "true",
@@ -497,13 +497,13 @@ func CreateIngress(client kubernetes.Interface, httpTriggerObj *kubelessApi.HTTP
 
 		ingress.Spec.TLS = []v1beta1.IngressTLS{
 			{
-				Hosts:      []string{hostname},
-				SecretName: ingressName + "-tls",
+				Hosts:      []string{httpTriggerObj.Spec.HostName},
+				SecretName: httpTriggerObj.Spec.RouteName + "-tls",
 			},
 		}
 	}
 
-	_, err = client.ExtensionsV1beta1().Ingresses(ns).Create(ingress)
+	_, err = client.ExtensionsV1beta1().Ingresses(httpTriggerObj.Namespace).Create(ingress)
 	if err != nil {
 		return err
 	}

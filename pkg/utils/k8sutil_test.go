@@ -735,16 +735,16 @@ func TestCreateIngressResource(t *testing.T) {
 			FunctionName: f1.Name,
 		},
 	}
-	if err := CreateIngress(clientset, httpTrigger, "bar", "foo.bar", "myns", false); err != nil {
+	if err := CreateIngress(clientset, httpTrigger); err != nil {
 		t.Fatalf("Creating ingress returned err: %v", err)
 	}
-	if err := CreateIngress(clientset, httpTrigger, "bar", "foo.bar", "myns", false); err != nil {
+	if err := CreateIngress(clientset, httpTrigger); err != nil {
 		if !k8sErrors.IsAlreadyExists(err) {
 			t.Fatalf("Expect object is already exists, got %v", err)
 		}
 	}
 	httpTrigger.Spec.ServiceSpec.Ports = []v1.ServicePort{}
-	if err := CreateIngress(clientset, httpTrigger, "bar", "foo.bar", "myns", false); err == nil {
+	if err := CreateIngress(clientset, httpTrigger); err == nil {
 		t.Fatal("Expect create ingress fails, got success")
 	}
 }
@@ -773,10 +773,13 @@ func TestCreateIngressResourceWithTLSAcme(t *testing.T) {
 					},
 				},
 			},
+			HostName:     "foo",
+			RouteName:    "foo",
+			TLSAcme:      true,
 			FunctionName: f1.Name,
 		},
 	}
-	if err := CreateIngress(clientset, httpTrigger, "foo", "foo.bar", "myns", true); err != nil {
+	if err := CreateIngress(clientset, httpTrigger); err != nil {
 		t.Fatalf("Creating ingress returned err: %v", err)
 	}
 
