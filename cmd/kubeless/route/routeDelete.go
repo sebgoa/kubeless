@@ -17,6 +17,8 @@ import (
 	"github.com/kubeless/kubeless/pkg/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var routeDeleteCmd = &cobra.Command{
@@ -29,6 +31,11 @@ var routeDeleteCmd = &cobra.Command{
 		}
 		ingName := args[0]
 
+		httpTriggerName, err := cmd.Flags().GetString("http-trigger")
+		if err != nil {
+			logrus.Fatal(err)
+		}
+
 		ns, err := cmd.Flags().GetString("namespace")
 		if err != nil {
 			logrus.Fatal(err)
@@ -37,11 +44,31 @@ var routeDeleteCmd = &cobra.Command{
 			ns = utils.GetDefaultNamespace()
 		}
 
-		client := utils.GetClientOutOfCluster()
-
-		err = utils.DeleteIngress(client, ingName, ns)
+		kubelessClient, err := utils.GetHTTPTriggerClientOutCluster()
 		if err != nil {
 			logrus.Fatal(err)
 		}
+
+		httpTrigger, err := kubelessClient.KubelessV1beta1().HTTPTriggers(ns).Get(httpTriggerName, metav1.GetOptions{})
+		if err != nil {
+			if k8sErrors.IsNotFound(err) {
+				logrus.Fatalf("http trigger %s doesn't exist in namespace %s", httpTriggerName, ns)
+			} else {
+				logrus.Fatalf("error validate input %v", err)
+			}
+		}
+
+		httpTrigger.Spec.HostName = ""
+		httpTrigger.Spec.TLSAcme = false
+		httpTrigger.Spec.RouteName = ingName
+
+		err = utils.PatchHTTPTriggerCustomResource(kubelessClient, httpTrigger)
+		if err != nil {
+			logrus.Fatalf("Can't create route: %v", err)
+		}
 	},
+}
+
+func init() {
+	routeDeleteCmd.Flags().StringP("http-trigger", "", "", "Name of the http-trigger")
 }

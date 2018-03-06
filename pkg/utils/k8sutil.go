@@ -312,6 +312,16 @@ func UpdateHTTPTriggerCustomResource(kubelessClient versioned.Interface, httpTri
 	return err
 }
 
+// PatchHTTPTriggerCustomResource applies changes to the function custom object
+func PatchHTTPTriggerCustomResource(kubelessClient versioned.Interface, httpTrigger *kubelessApi.HTTPTrigger) error {
+	data, err := json.Marshal(httpTrigger)
+	if err != nil {
+		return err
+	}
+	_, err = kubelessClient.KubelessV1beta1().HTTPTriggers(httpTrigger.Namespace).Patch(httpTrigger.Name, types.MergePatchType, data)
+	return err
+}
+
 // DeleteHTTPTriggerCustomResource will delete  HTTP trigger custom resource object
 func DeleteHTTPTriggerCustomResource(kubelessClient versioned.Interface, httpTriggerName, ns string) error {
 	err := kubelessClient.KubelessV1beta1().HTTPTriggers(ns).Delete(httpTriggerName, &metav1.DeleteOptions{})

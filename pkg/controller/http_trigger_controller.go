@@ -18,6 +18,7 @@ package controller
 
 import (
 	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/kubeless/kubeless/pkg/client/informers/externalversions"
@@ -75,6 +76,11 @@ func NewHTTPTriggerController(cfg HTTPTriggerConfig) *HTTPTriggerController {
 		UpdateFunc: func(old, new interface{}) {
 			key, err := cache.MetaNamespaceKeyFunc(new)
 			if err == nil {
+				newObj := new.(*kubelessApi.HTTPTrigger)
+				oldObj := old.(*kubelessApi.HTTPTrigger)
+				if httpTriggerObjChanged(oldObj, newObj) {
+					queue.Add(key)
+				}
 				queue.Add(key)
 			}
 		},
@@ -201,6 +207,14 @@ func (c *HTTPTriggerController) syncHTTPTrigger(key string) error {
 			return nil
 		}
 
+		// remove ingress resource if any
+		if httpTriggerObj.Spec.HostName != "" || httpTriggerObj.Spec.TLSAcme {
+			err = utils.DeleteIngress(c.clientset, httpTriggerObj.Spec.RouteName, httpTriggerObj.Namespace)
+			if err != nil {
+				c.logger.Errorf("Failed to remove ingress rule %s corresponding to http trigger Obj: %s due to: %v: ", httpTriggerObj.Spec.RouteName, key, err)
+			}
+		}
+
 		err = c.httpTriggerObjRemoveFinalizer(httpTriggerObj)
 		if err != nil {
 			c.logger.Errorf("Failed to remove HTTP trigger controller as finalizer to http trigger Obj: %s due to: %v: ", key, err)
@@ -217,6 +231,20 @@ func (c *HTTPTriggerController) syncHTTPTrigger(key string) error {
 			return err
 		}
 		return nil
+	}
+	// create ingress resource if required
+	if httpTriggerObj.Spec.HostName != "" {
+		err = utils.CreateIngress(c.clientset, httpTriggerObj, httpTriggerObj.Spec.RouteName, httpTriggerObj.Spec.HostName, httpTriggerObj.Namespace, httpTriggerObj.Spec.TLSAcme)
+		if err != nil {
+			c.logger.Errorf("Failed to remove ingress rule %s corresponding to http trigger Obj: %s due to: %v: ", httpTriggerObj.Spec.RouteName, key, err)
+		}
+	}
+	// delete ingress resource if not required
+	if httpTriggerObj.Spec.HostName == "" {
+		err = utils.DeleteIngress(c.clientset, httpTriggerObj.Spec.RouteName, httpTriggerObj.Namespace)
+		if err != nil {
+			c.logger.Errorf("Failed to remove ingress rule %s corresponding to http trigger Obj: %s due to: %v: ", httpTriggerObj.Spec.RouteName, key, err)
+		}
 	}
 	c.logger.Infof("Processed update to HTTPTrigger: %s", key)
 	return nil
@@ -274,4 +302,25 @@ func (c *HTTPTriggerController) httpTriggerObjRemoveFinalizer(triggercObj *kubel
 		return err
 	}
 	return nil
+}
+
+func httpTriggerObjChanged(oldObj, newObj *kubelessApi.HTTPTrigger) bool {
+	// If the function object's deletion timestamp is set, then process
+	if oldObj.DeletionTimestamp != newObj.DeletionTimestamp {
+		return true
+	}
+	// If the new and old function object's resource version is same
+	if oldObj.ResourceVersion == newObj.ResourceVersion {
+		return false
+	}
+	newSpec := &newObj.Spec
+	oldSpec := &oldObj.Spec
+
+	if newSpec.HostName != oldSpec.HostName || newSpec.TLSAcme != oldSpec.TLSAcme {
+		return true
+	}
+	if !reflect.DeepEqual(newSpec.ServiceSpec, oldSpec.ServiceSpec) {
+		return true
+	}
+	return false
 }
